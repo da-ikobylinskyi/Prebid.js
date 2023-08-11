@@ -1,21 +1,21 @@
 /**
- * This module adds AdmixerId to the User ID module
+ * This module adds digitalAudienceId to the User ID module
  * The {@link module:modules/userId} module is required
- * @module modules/admixerIdSubmodule
+ * @module modules/digitalAudienceIdSubmodule
  * @requires module:modules/userId
  */
 
 import { logError, logInfo } from '../src/utils.js'
 import { ajax } from '../src/ajax.js';
 import { submodule } from '../src/hook.js';
-import {getStorageManager} from '../src/storageManager.js';
-import {MODULE_TYPE_UID} from '../src/activities/modules.js';
+import { getStorageManager } from '../src/storageManager.js';
+import { MODULE_TYPE_UID } from '../src/activities/modules.js';
 
-const NAME = 'admixerId';
-export const storage = getStorageManager({moduleType: MODULE_TYPE_UID, moduleName: NAME});
+const NAME = 'digitalAudienceId';
+export const storage = getStorageManager({ moduleType: MODULE_TYPE_UID, moduleName: NAME });
 
 /** @type {Submodule} */
-export const admixerIdSubmodule = {
+export const digitalAudienceIdSubmodule = {
   /**
    * used to link submodule with config
    * @type {string}
@@ -25,15 +25,15 @@ export const admixerIdSubmodule = {
    * used to specify vendor id
    * @type {number}
    */
-  gvlid: 511,
+  gvlid: 133,
   /**
    * decode the stored id value for passing to bid requests
    * @function
    * @param {string} value
-   * @returns {{admixerId:string}}
+   * @returns {{digitalAudienceId:string}}
    */
   decode(value) {
-    return { 'admixerId': value }
+    return { 'digitalAudienceId': value }
   },
   /**
    * performs action to obtain id and return a value in the callback's response argument
@@ -43,47 +43,36 @@ export const admixerIdSubmodule = {
    * @returns {IdResponse|undefined}
    */
   getId(config, consentData) {
-    const {e, p, pid} = (config && config.params) || {};
-    if (!pid || typeof pid !== 'string') {
-      logError('admixerId submodule requires partner id to be defined');
+    const { emailHash, p, publisherId } = (config && config.params) || {};
+    if (!publisherId || typeof publisherId !== 'string') {
+      logError('digitalAudience id submodule requires publisher id to be defined');
       return;
     }
     const gdpr = (consentData && typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies) ? 1 : 0;
     const consentString = gdpr ? consentData.consentString : '';
     if (gdpr && !consentString) {
-      logInfo('Consent string is required to call admixer id.');
+      logInfo('Consent string is required to call digitalAudience id.');
       return;
     }
-    const url = `https://inv-nets.admixer.net/cntcm.aspx?ssp=${pid}${e ? `&e=${e}` : ''}${p ? `&p=${p}` : ''}${consentString ? `&cs=${consentString}` : ''}`;
-    const resp = function(callback) {
-      if (window.admixTMLoad && window.admixTMLoad.push) {
-        window.admixTMLoad.push(function() {
-          window.admixTM.retrieveVisitorId(function(visitorId) {
-            if (visitorId) {
-              callback(visitorId);
-            } else {
-              callback();
-            }
-          });
-        });
-      } else {
-        retrieveVisitorId(url, callback);
-      }
+    const url = `https://target.digialaudience.io/bakery/bake?publisher=${publisherId}${emailHash ? `&email=${emailHash}` : ''}${p ? `&phone=${p}` : ''}${consentString ? `&gdpr=1&gdpr_consent=${consentString}` : ''}`;
+    const resp = function (callback) {
+      retrieveVisitorId(url, callback);
     };
 
     return { callback: resp };
   },
   eids: {
-    'admixerId': {
-      source: 'admixer.net',
+    'digitalAudienceId': {
+      source: 'digitalaudience.io',
       atype: 3
-    },
+    }
   }
 };
+
 function retrieveVisitorId(url, callback) {
   ajax(url, {
     success: response => {
-      const {setData: {visitorid} = {}} = JSON.parse(response || '{}');
+      const { setData: { visitorid } = {} } = JSON.parse(response || '{}');
       if (visitorid) {
         callback(visitorid);
       } else {
@@ -91,10 +80,10 @@ function retrieveVisitorId(url, callback) {
       }
     },
     error: error => {
-      logInfo(`admixerId: fetch encountered an error`, error);
+      logInfo(`digitalAudienceId: fetch encountered an error`, error);
       callback();
     }
   }, undefined, { method: 'GET', withCredentials: true });
 }
 
-submodule('userId', admixerIdSubmodule);
+submodule('userId', digitalAudienceIdSubmodule);

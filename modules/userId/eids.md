@@ -279,6 +279,13 @@ userIdAsEids = [
             id: 'some-random-id-value',
             atype: 3
         }]
+    },
+    {
+        source: 'digitalaudience.io',
+        uids: [{
+            id: 'some-random-id-value',
+            atype: 3
+        }]
     }
 ]
 ```
